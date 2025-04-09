@@ -1,8 +1,9 @@
-
+from pathlib import Path
 import json
 import random
 import asyncio
 from datetime import datetime, timedelta
+
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, MessageHandler, CommandHandler,
@@ -11,7 +12,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 BOT_TOKEN = "7846035245:AAFQ7sAkLt_D8LFIdWDx2N6cgr0dTp5wvnU"
-OWNER_ID = 7814078698
+OWNER_ID = 7814078698  # Replace with actual owner ID
 OWNER_USERNAME = "@MRSKYX0"
 
 USER_DATA_FILE = "users.json"
@@ -24,6 +25,7 @@ user_ids = set()
 tickets = {}
 credits = {}
 current_plan = "No plan set."
+
 
 def load_data():
     global user_ids, tickets, credits, current_plan
@@ -48,6 +50,7 @@ def load_data():
     except:
         pass
 
+
 def save_data():
     with open(USER_DATA_FILE, "w") as f:
         json.dump(list(user_ids), f)
@@ -58,30 +61,35 @@ def save_data():
     with open(PLAN_FILE, "w") as f:
         f.write(current_plan)
 
+
 def get_keyboard(is_owner=False):
     base_buttons = [
-        ["ðŸ“¥ Start", "ðŸ“– Help"],
-        ["ðŸŽ« Support", "ðŸ“‚ Check Status"],
-        ["ðŸ’³ KD", "ðŸ“„ Plan"]
+        ["📥 Start", "📖 Help"],
+        ["🎫 Support", "📂 Check Status"],
+        ["💳 Card Check", "📄 Plan"]
     ]
     if is_owner:
-        base_buttons.append(["ðŸ“¢ Broadcast", "âœï¸ Update Ticket", "âœ… Approve"])
+        base_buttons.append(["📢 Broadcast", "✏️ Update Ticket", "✅ Approve"])
+        base_buttons.append(["📝 Update Plan"])
     return ReplyKeyboardMarkup(base_buttons, resize_keyboard=True)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     is_owner = user.id == OWNER_ID
     keyboard = get_keyboard(is_owner)
-    await update.message.reply_text("ðŸ¤– Welcome to Killer Bot!", reply_markup=keyboard)
+    await update.message.reply_text("🤖 Welcome to Killer Bot!", reply_markup=keyboard)
     if not is_owner:
         user_ids.add(user.id)
         save_data()
 
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("ðŸ›  All Commands:\n"
+    await update.message.reply_text("🛠 All Commands:\n"
         "/start\n/help\n/support <issue>\n/check_status <ticket_id>\n"
-        "/kd <card>|<mm>|<yy>|<cvv>\n/plan\n/update_ticket <ticket_id> <status>\n"
-        "/approve <user_id> <days> <coins>")
+        "/kd <card> <mm> <yy> <cvv>\n/plan\n/update_ticket <ticket_id> <status>\n"
+        "/approve <user_id> <days> <coins>\n/broadcast <message>\n/update_plan <text>")
+
 
 async def support_ticket(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -93,8 +101,9 @@ async def support_ticket(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton("In Progress", callback_data=f"inprogress_{ticket_id}"),
         InlineKeyboardButton("Completed", callback_data=f"complete_{ticket_id}")
     ]])
-    await context.bot.send_message(OWNER_ID, f"ðŸŽ« Ticket ID: {ticket_id}\nUser: @{user.username or user.id}\nIssue: {message.text}", reply_markup=buttons)
-    await update.message.reply_text(f"âœ… Ticket created. ID: {ticket_id}")
+    await context.bot.send_message(OWNER_ID, f"🎫 Ticket ID: {ticket_id}\nUser: @{user.username or user.id}\nIssue: {message.text}", reply_markup=buttons)
+    await update.message.reply_text(f"✅ Ticket created. ID: {ticket_id}")
+
 
 async def check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parts = update.message.text.strip().split()
@@ -104,9 +113,10 @@ async def check_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ticket_id = parts[-1]
     ticket = tickets.get(ticket_id)
     if ticket and ticket["user_id"] == update.effective_user.id:
-        await update.message.reply_text(f"ðŸ“‚ Ticket Status: {ticket['status']}")
+        await update.message.reply_text(f"📂 Ticket Status: {ticket['status']}")
     else:
-        await update.message.reply_text("âŒ Ticket not found or unauthorized.")
+        await update.message.reply_text("❌ Ticket not found or unauthorized.")
+
 
 async def handle_status_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -120,6 +130,7 @@ async def handle_status_update(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer("Status Updated")
     await query.edit_message_reply_markup()
 
+
 async def approve_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
         return
@@ -129,29 +140,34 @@ async def approve_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expire = (datetime.now() + timedelta(days=int(days))).strftime("%Y-%m-%d")
         credits[str(user_id)] = {"coins": int(coins), "expire": expire}
         save_data()
-        await update.message.reply_text(f"âœ… Approved user {user_id} with {coins} coins for {days} days.")
+        await update.message.reply_text(f"✅ Approved user {user_id} with {coins} coins for {days} days.")
     except:
-        await update.message.reply_text("âŒ Usage: /approve <user_id> <days> <coins>")
+        await update.message.reply_text("❌ Usage: /approve <user_id> <days> <coins>")
+
 
 async def kd_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     if user_id not in credits or credits[user_id]["coins"] <= 0:
-        await update.message.reply_text("âŒ No coins available.")
+        await update.message.reply_text("❌ No coins available.")
         return
-    text = update.message.text.replace("/kd", "").strip()
-    parts = text.split("|")
+
+    msg_text = update.message.text.replace("/kd", "").replace("💳 Card Check", "").strip()
+    parts = msg_text.split("|")
     if len(parts) != 4:
-        await update.message.reply_text("âŒ Usage: /kd <card>|<mm>|<yy>|<cvv>")
+        await update.message.reply_text("❌ Invalid format.\nUse: /kd 1234567890123456|08|2028|123")
         return
+
     credits[user_id]["coins"] -= 1
     save_data()
-    msg = await update.message.reply_text("â³ Processing...")
+
+    msg = await update.message.reply_text("⏳ Processing...")
     await asyncio.sleep(7)
     elapsed = random.randint(2, 5)
     await msg.edit_text(
-        f"âŒ Declined\nCard: {parts[0]}|{parts[1]}|{parts[2]}|{parts[3]}\n"
-        f"ðŸ’¬ Response: Killed successfully\nâ± Time: {elapsed}s\nðŸ™ Thank you!"
+        f"❌ Declined\nCard: {msg_text}\n"
+        f"💬 Response: Killed successfully\n⏱ Time: {elapsed}s\n🙏 Thank you!"
     )
+
 
 async def update_ticket(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
@@ -161,46 +177,47 @@ async def update_ticket(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if ticket_id in tickets:
             tickets[ticket_id]["status"] = new_status
             save_data()
-            await update.message.reply_text(f"âœ… Ticket {ticket_id} updated to {new_status}.")
+            await update.message.reply_text(f"✅ Ticket {ticket_id} updated to {new_status}.")
         else:
-            await update.message.reply_text("âŒ Ticket ID not found.")
+            await update.message.reply_text("❌ Ticket ID not found.")
     except:
-        await update.message.reply_text("âŒ Usage: /update_ticket <ticket_id> <new_status>")
+        await update.message.reply_text("❌ Usage: /update_ticket <ticket_id> <new_status>")
+
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(current_plan)
 
+
 async def update_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
         return
-    new_text = update.message.text.replace("update plan", "", 1).strip()
+    new_text = update.message.text.replace("/update_plan", "").replace("📝 Update Plan", "").strip()
     if new_text:
         global current_plan
         current_plan = new_text
         save_data()
-        await update.message.reply_text("âœ… Plan updated.")
-    else:
-        await update.message.reply_text("âŒ Usage: update plan <text>")
+        await update.message.reply_text("✅ Plan updated.")
 
-async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
         return
-    msg = update.message.text.replace("broadcast", "", 1).strip()
-    if not msg:
-        await update.message.reply_text("âŒ Usage: broadcast <message>")
+    text = update.message.text.replace("/broadcast", "").replace("📢 Broadcast", "").strip()
+    if not text:
+        await update.message.reply_text("❌ Usage: /broadcast <message>")
         return
-    count = 0
     for uid in user_ids:
         try:
-            await context.bot.send_message(uid, f"ðŸ“¢ Broadcast:\n\n{msg}")
-            count += 1
+            await context.bot.send_message(uid, f"📢 Broadcast:\n{text}")
         except:
             continue
-    await update.message.reply_text(f"âœ… Sent to {count} users.")
+    await update.message.reply_text("✅ Broadcast sent.")
+
 
 def main():
     load_data()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("support", support_ticket))
@@ -210,19 +227,25 @@ def main():
     app.add_handler(CommandHandler("update_ticket", update_ticket))
     app.add_handler(CommandHandler("plan", plan_command))
     app.add_handler(CommandHandler("update_plan", update_plan))
-    app.add_handler(CommandHandler("broadcast", broadcast))
+    app.add_handler(CommandHandler("broadcast", broadcast_command))
+
+    # Message Handlers for emoji-keyboard
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📥 Start)$"), start))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📖 Help)$"), help_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(🎫 Support)$"), support_ticket))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📂 Check Status)$"), check_status))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(💳 Card Check)$"), kd_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📄 Plan)$"), plan_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(✅ Approve)$"), approve_user))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(✏️ Update Ticket)$"), update_ticket))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📢 Broadcast)$"), broadcast_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^(📝 Update Plan)$"), update_plan))
+
     app.add_handler(CallbackQueryHandler(handle_status_update))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ“¥ Start$"), start))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ“– Help$"), help_command))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸŽ« Support$"), support_ticket))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ“‚ Check Status$"), check_status))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ’³ KD$"), kd_command))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ“„ Plan$"), plan_command))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^ðŸ“¢ Broadcast$"), broadcast))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^âœï¸ Update Ticket$"), update_ticket))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^âœ… Approve$"), approve_user))
-    print("ðŸ¤– Bot is running...")
+
+    print("🤖 Bot is running...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
