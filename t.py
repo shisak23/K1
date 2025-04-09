@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
-BOT_TOKEN = "7846035245:AAG2eouxwcdcFJAqfuEZHHrIawp7air7hGg"
+BOT_TOKEN = "7846035245:AAEQLBOO8o0pM29lJUhpjp0Ba1-EHyn_ytM"
 OWNER_ID = 7814078698
 OWNER_USERNAME = "@MRSKYX0"
 
