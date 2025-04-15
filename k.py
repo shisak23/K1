@@ -8,7 +8,7 @@ from telegram.constants import ParseMode
 
 BOT_TOKEN = "7846035245:AAFQ7sAkLt_D8LFIdWDx2N6cgr0dTp5wvnU"
 OWNER_ID = 7814078698  # Replace with your Telegram user ID
-OWNER_USERNAME = "@MRSKYX0"
+OWNER_USERNAME = "@SPIKEOWNER"
 
 USER_DATA_FILE = "users.json"
 TICKET_DATA_FILE = "tickets.json"
@@ -253,12 +253,12 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📖 Help$"), help_command))
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^🎫 Support$"), support_ticket))
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📂 Check Status$"), check_status))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^💳 Card Check$"), kd_command))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^/kd "), kd_command))
     app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📄 Plan$"), plan_command))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^✏️ Update Ticket$"), update_ticket))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^✅ Approve$"), approve_user))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📝 Update Plan$"), update_plan))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📢 Broadcast$"), broadcast))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^update_ticket$"), update_ticket))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^/approve$"), approve_user))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^/update_plan$"), update_plan))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^/broadcast$"), broadcast))
 
     app.run_polling()
 
